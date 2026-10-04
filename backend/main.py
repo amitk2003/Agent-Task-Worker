@@ -22,7 +22,7 @@ app = FastAPI(
 # Configure CORS for local development with React/Vite
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://agent-task-worker.onrender.com","http://localhost:5173"],  # Allows Vite dev server on any port
+    allow_origins=["https://agent-task-worker.onrender.com","http://localhost:5173","https://agent-task-worker.vercel.app"],  # Allows Vite dev server on any port
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
