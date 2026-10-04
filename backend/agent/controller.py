@@ -25,6 +25,7 @@ import asyncio
 from datetime import datetime
 from typing import AsyncGenerator, Optional
 
+from agent.audit_store import get_audit_store
 from agent.memory import ExecutionMemory
 from agent.models import (
     AgentEvent,
@@ -114,9 +115,20 @@ class AgentController:
             # ── ACT ──────────────────────────────────────────────
             tool = self._registry.get(tool_name)
             if not tool:
+                # Record unknown tool in history so LLM can self-correct
+                bad_step = StepRecord(
+                    step_number=task.current_step,
+                    action=tool_name,
+                    tool_name=tool_name,
+                    tool_args=tool_args,
+                    result={"error": f"Tool '{tool_name}' does not exist"},
+                    status=StepStatus.FAILED,
+                    error=f"Tool '{tool_name}' does not exist. Choose from available tools.",
+                )
+                task.history.append(bad_step)
                 yield AgentEvent(
                     event_type=EventType.STEP_FAILED,
-                    message=f"Unknown tool: {tool_name}. Skipping.",
+                    message=f"Unknown tool '{tool_name}' — asking agent to self-correct.",
                 )
                 continue
 
@@ -161,6 +173,22 @@ class AgentController:
                     status=StepStatus.SUCCESS,
                 )
                 task.history.append(step)
+
+                # Persist step to audit log
+                try:
+                    audit = await get_audit_store()
+                    await audit.save_step(
+                        task_id=task.task_id,
+                        step_number=step.step_number,
+                        tool_name=step.tool_name,
+                        tool_args=step.tool_args,
+                        result=step.result,
+                        status=step.status.value,
+                        error=step.error,
+                        timestamp=step.timestamp,
+                    )
+                except Exception:
+                    pass  # Audit failure never blocks the agent
 
                 # Update memory with discovered data
                 if result.data:
@@ -232,22 +260,38 @@ class AgentController:
                 )
                 task.history.append(step)
 
+                # Persist failed step to audit log
+                try:
+                    audit = await get_audit_store()
+                    await audit.save_step(
+                        task_id=task.task_id,
+                        step_number=step.step_number,
+                        tool_name=step.tool_name,
+                        tool_args=step.tool_args,
+                        result=step.result,
+                        status=step.status.value,
+                        error=step.error,
+                        timestamp=step.timestamp,
+                    )
+                except Exception:
+                    pass
+
                 if current_retries < self._settings.max_retries_per_step:
                     retry_counts[tool_name] = current_retries + 1
                     yield AgentEvent(
                         event_type=EventType.RECOVERY_ATTEMPT,
                         message=(
                             f"Action failed: {result.error}. "
-                            f"Attempting recovery… "
-                            f"(retry {current_retries + 1}/{self._settings.max_retries_per_step})"
+                            f"Agent deciding recovery strategy… "
+                            f"(attempt {current_retries + 1}/{self._settings.max_retries_per_step})"
                         ),
                         data={
                             "error": result.error,
                             "retry": current_retries + 1,
                         },
                     )
-                    # Loop continues — planner sees the failure in history
-                    # and will decide recovery actions
+                    # Loop continues — planner sees failure+error in history
+                    # and independently decides the recovery action
                 else:
                     yield AgentEvent(
                         event_type=EventType.TASK_FAILED,
@@ -259,6 +303,18 @@ class AgentController:
                     )
                     task.status = TaskStatus.FAILED
                     task.error = f"Max retries exceeded: {result.error}"
+                    # Persist final failed state
+                    try:
+                        audit = await get_audit_store()
+                        await audit.save_task(
+                            task_id=task.task_id, goal=task.goal,
+                            status=task.status.value,
+                            created_at=task.created_at,
+                            error=task.error,
+                            total_steps=len(task.history),
+                        )
+                    except Exception:
+                        pass
                     return
 
         # ── COMPLETION ───────────────────────────────────────────
@@ -266,6 +322,21 @@ class AgentController:
             task.status = TaskStatus.COMPLETED
             task.completed_at = datetime.utcnow()
             task.memory = memory.to_dict()
+
+            # Persist completed task to audit store
+            try:
+                audit = await get_audit_store()
+                await audit.save_task(
+                    task_id=task.task_id,
+                    goal=task.goal,
+                    status=task.status.value,
+                    created_at=task.created_at,
+                    completed_at=task.completed_at,
+                    total_steps=len(task.history),
+                    memory=task.memory,
+                )
+            except Exception:
+                pass
 
             yield AgentEvent(
                 event_type=EventType.TASK_COMPLETE,

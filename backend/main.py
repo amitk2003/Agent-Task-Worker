@@ -38,6 +38,16 @@ app.mount("/storage", StaticFiles(directory=str(storage_path)), name="storage")
 app.include_router(api_router, prefix="/api")
 
 
+# ── Startup: initialize persistent audit store ───────────────────────
+
+from agent.audit_store import get_audit_store
+
+@app.on_event("startup")
+async def startup_init():
+    """Initialize the SQLite audit database on server boot."""
+    await get_audit_store()
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint to verify backend operational readiness."""

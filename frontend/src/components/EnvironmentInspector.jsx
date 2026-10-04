@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Layers, Database, RefreshCw, Mail, Folder, Globe, Send, FileText } from 'lucide-react';
-import api from '../api/api.js'
+import api from '../api/api.js';
+
 export function EnvironmentInspector({ status }) {
   const [invoices, setInvoices] = useState([]);
   const [financeData, setFinanceData] = useState({ records: [], session_active: false });
@@ -23,12 +24,12 @@ export function EnvironmentInspector({ status }) {
         api.get("/api/files/list"),
         api.get("/api/browser/status"),
       ]);
-      if (resPortal.ok) setInvoices(await resPortal.json());
-      if (resFinance.ok) setFinanceData(await resFinance.json());
-      if (resInbox.ok) setInbox(await resInbox.json());
-      if (resOutbox.ok) setOutbox(await resOutbox.json());
-      if (resFiles.ok) setFiles(await resFiles.json());
-      if (resBrowser.ok) setBrowserState(await resBrowser.json());
+      if (resPortal.data) setInvoices(resPortal.data);
+      if (resFinance.data) setFinanceData(resFinance.data);
+      if (resInbox.data) setInbox(resInbox.data);
+      if (resOutbox.data) setOutbox(resOutbox.data);
+      if (resFiles.data) setFiles(resFiles.data);
+      if (resBrowser.data) setBrowserState(resBrowser.data);
     } catch (e) {
       console.error('Failed to fetch environment state:', e);
     } finally {

@@ -5,3 +5,9 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+
+# Persistent audit database (generated at runtime)
+agent_audit.db
+
+# Agent file storage (screenshots, saved files)
+storage/

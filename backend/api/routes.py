@@ -14,6 +14,7 @@ from typing import Dict
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
+from agent.audit_store import get_audit_store
 from agent.controller import AgentController
 from agent.models import (
     ApprovalResponse,
@@ -43,7 +44,8 @@ router = APIRouter()
 tasks_db: Dict[str, TaskState] = {}
 controllers_db: Dict[str, AgentController] = {}
 
-# Mock & Real environments (singletons for demonstration)
+# Shared singleton environments for INSPECTION endpoints only.
+# Each task gets its OWN isolated copies inside create_tool_registry().
 invoice_portal = InvoicePortal()
 finance_system = FinanceSystem()
 email_system = EmailSystem()
@@ -52,26 +54,41 @@ browser_engine = BrowserEngine()
 
 
 def create_tool_registry() -> ToolRegistry:
-    """Instantiate and register all tools wired to the systems."""
+    """
+    Build a fresh ToolRegistry with isolated environment instances.
+
+    IMPORTANT: Each task call creates its OWN registry with its OWN
+    mock-env objects. This prevents concurrent tasks from corrupting
+    each other's state (task isolation).
+
+    The shared singletons above are only used by inspection endpoints.
+    """
+    # Per-task isolated environments
+    task_invoice_portal = InvoicePortal()
+    task_finance_system = FinanceSystem()
+    task_email_system = EmailSystem()
+    task_file_manager = FileManager()
+    task_browser_engine = BrowserEngine()
+
     registry = ToolRegistry()
     # Invoices & Finance
-    registry.register(SearchInvoicesTool(invoice_portal))
-    registry.register(ReadInvoiceTool(invoice_portal))
-    registry.register(OpenFinanceSystemTool(finance_system))
-    registry.register(FillInvoiceFormTool(finance_system))
-    registry.register(SubmitInvoiceTool(finance_system))
-    registry.register(VerifySubmissionTool(finance_system))
+    registry.register(SearchInvoicesTool(task_invoice_portal))
+    registry.register(ReadInvoiceTool(task_invoice_portal))
+    registry.register(OpenFinanceSystemTool(task_finance_system))
+    registry.register(FillInvoiceFormTool(task_finance_system))
+    registry.register(SubmitInvoiceTool(task_finance_system))
+    registry.register(VerifySubmissionTool(task_finance_system))
     # Email operations
-    registry.register(SearchEmailsTool(email_system))
-    registry.register(ReadEmailTool(email_system))
-    registry.register(SendEmailTool(email_system))
+    registry.register(SearchEmailsTool(task_email_system))
+    registry.register(ReadEmailTool(task_email_system))
+    registry.register(SendEmailTool(task_email_system))
     # File operations
-    registry.register(ListFilesTool(file_manager))
-    registry.register(ReadFileTool(file_manager))
-    registry.register(SaveFileTool(file_manager))
+    registry.register(ListFilesTool(task_file_manager))
+    registry.register(ReadFileTool(task_file_manager))
+    registry.register(SaveFileTool(task_file_manager))
     # Browser operations
-    registry.register(BrowserNavigateTool(browser_engine))
-    registry.register(BrowserScreenshotTool(browser_engine))
+    registry.register(BrowserNavigateTool(task_browser_engine))
+    registry.register(BrowserScreenshotTool(task_browser_engine))
     return registry
 
 
@@ -161,6 +178,26 @@ async def reset_environments():
     finance_system.reset()
     email_system.reset()
     return {"status": "all environments reset successfully"}
+
+
+# ── Audit History Endpoints ────────────────────────────────
+
+
+@router.get("/audit/history")
+async def get_audit_history(limit: int = 50):
+    """Return the most recent completed/failed tasks from persistent storage."""
+    store = await get_audit_store()
+    return await store.get_task_history(limit=limit)
+
+
+@router.get("/audit/tasks/{task_id}/steps")
+async def get_audit_steps(task_id: str):
+    """Return all persisted steps for a specific task (audit trail)."""
+    store = await get_audit_store()
+    steps = await store.get_task_steps(task_id)
+    if not steps:
+        raise HTTPException(status_code=404, detail="No steps found for this task")
+    return steps
 
 
 # ── WebSocket Execution Stream ──────────────────────────────────────
