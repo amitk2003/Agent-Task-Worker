@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Layers, Database, RefreshCw, Mail, Folder, Globe, Send, FileText } from 'lucide-react';
-
+import Url from '../api/url';
 export function EnvironmentInspector({ status }) {
   const [invoices, setInvoices] = useState([]);
   const [financeData, setFinanceData] = useState({ records: [], session_active: false });
@@ -16,12 +16,12 @@ export function EnvironmentInspector({ status }) {
     setLoading(true);
     try {
       const [resPortal, resFinance, resInbox, resOutbox, resFiles, resBrowser] = await Promise.all([
-        fetch('http://localhost:8000/api/portal/invoices'),
-        fetch('http://localhost:8000/api/finance/records'),
-        fetch('http://localhost:8000/api/email/inbox'),
-        fetch('http://localhost:8000/api/email/outbox'),
-        fetch('http://localhost:8000/api/files/list'),
-        fetch('http://localhost:8000/api/browser/status'),
+        fetch(`${Url}/api/portal/invoices`),
+        fetch(`${Url}/api/finance/records`),
+        fetch(`${Url}/api/email/inbox`),
+        fetch(`${Url}/api/email/outbox`),
+        fetch(`${Url}/api/files/list`),
+        fetch(`${Url}/api/browser/status`),
       ]);
       if (resPortal.ok) setInvoices(await resPortal.json());
       if (resFinance.ok) setFinanceData(await resFinance.json());
@@ -57,41 +57,36 @@ export function EnvironmentInspector({ status }) {
           <div className="flex flex-wrap bg-slate-900 p-0.5 rounded-lg border border-slate-800 text-xs">
             <button
               onClick={() => setActiveTab('portal')}
-              className={`px-2.5 py-1 rounded-md transition-colors ${
-                activeTab === 'portal' ? 'bg-indigo-600 text-white font-medium' : 'text-slate-400 hover:text-slate-200'
-              }`}
+              className={`px-2.5 py-1 rounded-md transition-colors ${activeTab === 'portal' ? 'bg-indigo-600 text-white font-medium' : 'text-slate-400 hover:text-slate-200'
+                }`}
             >
               Invoices ({invoices.length})
             </button>
             <button
               onClick={() => setActiveTab('finance')}
-              className={`px-2.5 py-1 rounded-md transition-colors ${
-                activeTab === 'finance' ? 'bg-indigo-600 text-white font-medium' : 'text-slate-400 hover:text-slate-200'
-              }`}
+              className={`px-2.5 py-1 rounded-md transition-colors ${activeTab === 'finance' ? 'bg-indigo-600 text-white font-medium' : 'text-slate-400 hover:text-slate-200'
+                }`}
             >
               Finance ({financeData.records?.length || 0})
             </button>
             <button
               onClick={() => setActiveTab('email')}
-              className={`px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 ${
-                activeTab === 'email' ? 'bg-indigo-600 text-white font-medium' : 'text-slate-400 hover:text-slate-200'
-              }`}
+              className={`px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 ${activeTab === 'email' ? 'bg-indigo-600 text-white font-medium' : 'text-slate-400 hover:text-slate-200'
+                }`}
             >
               <Mail className="w-3 h-3" /> Emails ({inbox.length + outbox.length})
             </button>
             <button
               onClick={() => setActiveTab('files')}
-              className={`px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 ${
-                activeTab === 'files' ? 'bg-indigo-600 text-white font-medium' : 'text-slate-400 hover:text-slate-200'
-              }`}
+              className={`px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 ${activeTab === 'files' ? 'bg-indigo-600 text-white font-medium' : 'text-slate-400 hover:text-slate-200'
+                }`}
             >
               <Folder className="w-3 h-3" /> Files ({files.length})
             </button>
             <button
               onClick={() => setActiveTab('browser')}
-              className={`px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 ${
-                activeTab === 'browser' ? 'bg-indigo-600 text-white font-medium' : 'text-slate-400 hover:text-slate-200'
-              }`}
+              className={`px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 ${activeTab === 'browser' ? 'bg-indigo-600 text-white font-medium' : 'text-slate-400 hover:text-slate-200'
+                }`}
             >
               <Globe className="w-3 h-3" /> Browser
             </button>
@@ -130,11 +125,10 @@ export function EnvironmentInspector({ status }) {
                     <td className="py-2.5 px-3 text-slate-400">{inv.due_date}</td>
                     <td className="py-2.5 px-3">
                       <span
-                        className={`px-2 py-0.5 rounded text-[10px] ${
-                          inv.status === 'paid'
+                        className={`px-2 py-0.5 rounded text-[10px] ${inv.status === 'paid'
                             ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/40'
                             : 'bg-amber-950/60 text-amber-300 border border-amber-800/40'
-                        }`}
+                          }`}
                       >
                         {inv.status}
                       </span>
@@ -192,17 +186,15 @@ export function EnvironmentInspector({ status }) {
             <div className="flex items-center gap-2 border-b border-slate-800/80 pb-2">
               <button
                 onClick={() => setEmailSubTab('inbox')}
-                className={`text-xs px-3 py-1 rounded-md transition-colors ${
-                  emailSubTab === 'inbox' ? 'bg-indigo-600/40 text-indigo-200 border border-indigo-500/50' : 'text-slate-400'
-                }`}
+                className={`text-xs px-3 py-1 rounded-md transition-colors ${emailSubTab === 'inbox' ? 'bg-indigo-600/40 text-indigo-200 border border-indigo-500/50' : 'text-slate-400'
+                  }`}
               >
                 Inbox ({inbox.length})
               </button>
               <button
                 onClick={() => setEmailSubTab('outbox')}
-                className={`text-xs px-3 py-1 rounded-md transition-colors flex items-center gap-1 ${
-                  emailSubTab === 'outbox' ? 'bg-indigo-600/40 text-indigo-200 border border-indigo-500/50' : 'text-slate-400'
-                }`}
+                className={`text-xs px-3 py-1 rounded-md transition-colors flex items-center gap-1 ${emailSubTab === 'outbox' ? 'bg-indigo-600/40 text-indigo-200 border border-indigo-500/50' : 'text-slate-400'
+                  }`}
               >
                 <Send className="w-3 h-3" /> Sent by Agent ({outbox.length})
               </button>
