@@ -4,6 +4,11 @@ import {
   XCircle, 
   RotateCw, 
   HelpCircle, 
+  Mail,
+  Folder,
+  Save,
+  Globe,
+  Camera,
   Search, 
   FileText, 
   Lock, 
@@ -30,12 +35,22 @@ export function ExecutionLog({ events, status }) {
       case 'thinking':
         return <Brain className="w-4 h-4 text-purple-400 animate-pulse" />;
       case 'step_start':
-        if (event.data?.tool === 'search_invoices') return <Search className="w-4 h-4 text-blue-400" />;
-        if (event.data?.tool === 'read_invoice_details') return <FileText className="w-4 h-4 text-cyan-400" />;
-        if (event.data?.tool === 'open_finance_system') return <Lock className="w-4 h-4 text-amber-400" />;
-        if (event.data?.tool === 'fill_invoice_form') return <FileText className="w-4 h-4 text-indigo-400" />;
-        if (event.data?.tool === 'submit_invoice') return <Send className="w-4 h-4 text-emerald-400" />;
-        if (event.data?.tool === 'verify_submission') return <CheckSquare className="w-4 h-4 text-teal-400" />;
+        const tool = event.data?.tool;
+        if (tool === 'search_invoices') return <Search className="w-4 h-4 text-blue-400" />;
+        if (tool === 'read_invoice_details') return <FileText className="w-4 h-4 text-cyan-400" />;
+        if (tool === 'open_finance_system') return <Lock className="w-4 h-4 text-amber-400" />;
+        if (tool === 'fill_invoice_form') return <FileText className="w-4 h-4 text-indigo-400" />;
+        if (tool === 'submit_invoice') return <Send className="w-4 h-4 text-emerald-400" />;
+        if (tool === 'verify_submission') return <CheckSquare className="w-4 h-4 text-teal-400" />;
+        // Email tools
+        if (tool === 'search_emails' || tool === 'read_email') return <Mail className="w-4 h-4 text-sky-400" />;
+        if (tool === 'send_email') return <Send className="w-4 h-4 text-emerald-400" />;
+        // File tools
+        if (tool === 'list_files' || tool === 'read_file') return <Folder className="w-4 h-4 text-amber-300" />;
+        if (tool === 'save_file') return <Save className="w-4 h-4 text-indigo-400" />;
+        // Browser tools
+        if (tool === 'browser_navigate') return <Globe className="w-4 h-4 text-blue-400" />;
+        if (tool === 'browser_screenshot') return <Camera className="w-4 h-4 text-pink-400" />;
         return <Brain className="w-4 h-4 text-indigo-400" />;
       case 'step_complete':
         return <CheckCircle2 className="w-4 h-4 text-emerald-400" />;

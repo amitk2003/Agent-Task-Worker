@@ -331,3 +331,27 @@ class AgentController:
 
         elif tool_name == "verify_submission":
             memory.set("verification", data)
+
+        elif tool_name == "search_emails":
+            emails = data.get("emails", [])
+            if emails:
+                memory.set("found_emails", emails)
+                memory.set("latest_email_id", emails[0].get("id"))
+
+        elif tool_name == "read_email":
+            email = data.get("email", {})
+            if email:
+                memory.set("email_content", email)
+                # If email has invoice info, map it
+                body = email.get("body", "")
+                memory.set("email_body", body)
+
+        elif tool_name == "save_file":
+            memory.set("saved_file_path", data.get("path"))
+
+        elif tool_name == "read_file":
+            memory.set("file_content", data.get("content"))
+
+        elif tool_name in ("browser_navigate", "browser_screenshot"):
+            if data.get("screenshot_path"):
+                memory.set("last_screenshot", data.get("screenshot_path"))

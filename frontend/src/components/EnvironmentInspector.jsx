@@ -1,21 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { Layers, Database, RefreshCw, FileText, CheckCircle } from 'lucide-react';
+import { Layers, Database, RefreshCw, Mail, Folder, Globe, Send, FileText } from 'lucide-react';
 
 export function EnvironmentInspector({ status }) {
   const [invoices, setInvoices] = useState([]);
   const [financeData, setFinanceData] = useState({ records: [], session_active: false });
-  const [activeTab, setActiveTab] = useState('portal'); // 'portal' | 'finance'
+  const [inbox, setInbox] = useState([]);
+  const [outbox, setOutbox] = useState([]);
+  const [files, setFiles] = useState([]);
+  const [browserState, setBrowserState] = useState({ current_url: '', last_screenshot: '' });
+  const [activeTab, setActiveTab] = useState('portal'); // 'portal' | 'finance' | 'email' | 'files' | 'browser'
+  const [emailSubTab, setEmailSubTab] = useState('inbox'); // 'inbox' | 'outbox'
   const [loading, setLoading] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [resPortal, resFinance] = await Promise.all([
+      const [resPortal, resFinance, resInbox, resOutbox, resFiles, resBrowser] = await Promise.all([
         fetch('http://localhost:8000/api/portal/invoices'),
         fetch('http://localhost:8000/api/finance/records'),
+        fetch('http://localhost:8000/api/email/inbox'),
+        fetch('http://localhost:8000/api/email/outbox'),
+        fetch('http://localhost:8000/api/files/list'),
+        fetch('http://localhost:8000/api/browser/status'),
       ]);
       if (resPortal.ok) setInvoices(await resPortal.json());
       if (resFinance.ok) setFinanceData(await resFinance.json());
+      if (resInbox.ok) setInbox(await resInbox.json());
+      if (resOutbox.ok) setOutbox(await resOutbox.json());
+      if (resFiles.ok) setFiles(await resFiles.json());
+      if (resBrowser.ok) setBrowserState(await resBrowser.json());
     } catch (e) {
       console.error('Failed to fetch environment state:', e);
     } finally {
@@ -28,39 +41,59 @@ export function EnvironmentInspector({ status }) {
   }, [status]);
 
   return (
-    <div className="glass-panel rounded-2xl p-6">
-      <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+    <div className="glass-panel rounded-2xl p-6 glow-primary">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
         <div className="flex items-center gap-2">
           <div className="p-2 bg-purple-500/20 text-purple-400 rounded-lg">
             <Layers className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-base font-semibold text-white">Live System Inspector</h2>
-            <p className="text-xs text-slate-400">Directly inspect mock applications & stored state</p>
+            <h2 className="text-base font-semibold text-white">Multi-System Inspector</h2>
+            <p className="text-xs text-slate-400">Inspect Portal, Finance, Emails, Files & Browser State</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex bg-slate-900 p-0.5 rounded-lg border border-slate-800 text-xs">
+          <div className="flex flex-wrap bg-slate-900 p-0.5 rounded-lg border border-slate-800 text-xs">
             <button
               onClick={() => setActiveTab('portal')}
-              className={`px-3 py-1 rounded-md transition-colors ${
-                activeTab === 'portal'
-                  ? 'bg-indigo-600 text-white font-medium'
-                  : 'text-slate-400 hover:text-slate-200'
+              className={`px-2.5 py-1 rounded-md transition-colors ${
+                activeTab === 'portal' ? 'bg-indigo-600 text-white font-medium' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Invoice Portal ({invoices.length})
+              Invoices ({invoices.length})
             </button>
             <button
               onClick={() => setActiveTab('finance')}
-              className={`px-3 py-1 rounded-md transition-colors ${
-                activeTab === 'finance'
-                  ? 'bg-indigo-600 text-white font-medium'
-                  : 'text-slate-400 hover:text-slate-200'
+              className={`px-2.5 py-1 rounded-md transition-colors ${
+                activeTab === 'finance' ? 'bg-indigo-600 text-white font-medium' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Finance System ({financeData.records?.length || 0})
+              Finance ({financeData.records?.length || 0})
+            </button>
+            <button
+              onClick={() => setActiveTab('email')}
+              className={`px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 ${
+                activeTab === 'email' ? 'bg-indigo-600 text-white font-medium' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Mail className="w-3 h-3" /> Emails ({inbox.length + outbox.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('files')}
+              className={`px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 ${
+                activeTab === 'files' ? 'bg-indigo-600 text-white font-medium' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Folder className="w-3 h-3" /> Files ({files.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('browser')}
+              className={`px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 ${
+                activeTab === 'browser' ? 'bg-indigo-600 text-white font-medium' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Globe className="w-3 h-3" /> Browser
             </button>
           </div>
 
@@ -75,7 +108,8 @@ export function EnvironmentInspector({ status }) {
       </div>
 
       <div className="pt-4">
-        {activeTab === 'portal' ? (
+        {/* 1. PORTAL INVOICES */}
+        {activeTab === 'portal' && (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-300 font-mono">
               <thead className="bg-slate-900/80 text-slate-400 uppercase text-[10px]">
@@ -92,7 +126,7 @@ export function EnvironmentInspector({ status }) {
                   <tr key={inv.invoice_id} className="hover:bg-slate-900/40">
                     <td className="py-2.5 px-3 font-semibold text-indigo-300">{inv.invoice_id}</td>
                     <td className="py-2.5 px-3 text-slate-100">{inv.company}</td>
-                    <td className="py-2.5 px-3 text-emerald-400">₹{inv.amount.toLocaleString()}</td>
+                    <td className="py-2.5 px-3 text-emerald-400">INR {inv.amount.toLocaleString()}</td>
                     <td className="py-2.5 px-3 text-slate-400">{inv.due_date}</td>
                     <td className="py-2.5 px-3">
                       <span
@@ -110,7 +144,10 @@ export function EnvironmentInspector({ status }) {
               </tbody>
             </table>
           </div>
-        ) : (
+        )}
+
+        {/* 2. FINANCE RECORDS */}
+        {activeTab === 'finance' && (
           <div className="space-y-3">
             <div className="flex items-center gap-4 text-xs font-mono bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
               <span className="text-slate-400">Session Status:</span>
@@ -135,7 +172,7 @@ export function EnvironmentInspector({ status }) {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-slate-300 mt-2">
                       <div><span className="text-slate-500">Invoice:</span> {rec.invoice_no}</div>
                       <div><span className="text-slate-500">Vendor:</span> {rec.vendor}</div>
-                      <div><span className="text-slate-500">Amount:</span> ₹{Number(rec.amount).toLocaleString()}</div>
+                      <div><span className="text-slate-500">Amount:</span> INR {Number(rec.amount).toLocaleString()}</div>
                       <div><span className="text-slate-500">Due:</span> {rec.due_date}</div>
                     </div>
                   </div>
@@ -144,6 +181,132 @@ export function EnvironmentInspector({ status }) {
             ) : (
               <div className="text-center py-6 text-slate-500 text-xs font-mono">
                 No invoices recorded in Finance System yet.
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 3. EMAIL SYSTEM */}
+        {activeTab === 'email' && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 border-b border-slate-800/80 pb-2">
+              <button
+                onClick={() => setEmailSubTab('inbox')}
+                className={`text-xs px-3 py-1 rounded-md transition-colors ${
+                  emailSubTab === 'inbox' ? 'bg-indigo-600/40 text-indigo-200 border border-indigo-500/50' : 'text-slate-400'
+                }`}
+              >
+                Inbox ({inbox.length})
+              </button>
+              <button
+                onClick={() => setEmailSubTab('outbox')}
+                className={`text-xs px-3 py-1 rounded-md transition-colors flex items-center gap-1 ${
+                  emailSubTab === 'outbox' ? 'bg-indigo-600/40 text-indigo-200 border border-indigo-500/50' : 'text-slate-400'
+                }`}
+              >
+                <Send className="w-3 h-3" /> Sent by Agent ({outbox.length})
+              </button>
+            </div>
+
+            {emailSubTab === 'inbox' ? (
+              <div className="space-y-2">
+                {inbox.map((mail) => (
+                  <div key={mail.id} className="p-3 bg-slate-900/60 rounded-xl border border-slate-800 text-xs">
+                    <div className="flex items-center justify-between text-slate-400 text-[11px] mb-1">
+                      <span className="font-semibold text-slate-200">{mail.sender}</span>
+                      <span className="font-mono">{new Date(mail.date).toLocaleDateString()}</span>
+                    </div>
+                    <div className="font-medium text-indigo-300">{mail.subject}</div>
+                    <p className="mt-1 text-slate-400 whitespace-pre-line text-[11px] line-clamp-2">{mail.body}</p>
+                    {mail.has_attachment && (
+                      <span className="inline-block mt-2 text-[10px] px-2 py-0.5 rounded bg-slate-800 text-indigo-400 border border-slate-700">
+                        📎 {mail.attachment_name}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {outbox.length === 0 ? (
+                  <div className="text-center py-6 text-slate-500 text-xs font-mono">
+                    No emails sent by the agent yet. (Ask the agent to send a confirmation email!)
+                  </div>
+                ) : (
+                  outbox.map((mail) => (
+                    <div key={mail.id} className="p-3 bg-emerald-950/20 rounded-xl border border-emerald-500/30 text-xs">
+                      <div className="flex items-center justify-between text-emerald-400 text-[11px] mb-1">
+                        <span>To: {mail.to}</span>
+                        <span className="font-mono text-slate-400">{new Date(mail.sent_at).toLocaleTimeString()}</span>
+                      </div>
+                      <div className="font-medium text-white">{mail.subject}</div>
+                      <p className="mt-1 text-slate-300 whitespace-pre-line text-[11px]">{mail.body}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 4. FILE STORAGE */}
+        {activeTab === 'files' && (
+          <div className="space-y-3">
+            <div className="text-xs text-slate-400 flex items-center justify-between">
+              <span>Directory: <code className="text-indigo-300">backend/storage/</code></span>
+              <span>Total files: {files.length}</span>
+            </div>
+
+            {files.length === 0 ? (
+              <div className="text-center py-6 text-slate-500 text-xs font-mono">No files found.</div>
+            ) : (
+              <div className="space-y-2">
+                {files.map((file, idx) => (
+                  <div key={idx} className="p-3 bg-slate-900/60 rounded-xl border border-slate-800 text-xs font-mono flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-amber-400 shrink-0" />
+                      <div>
+                        <div className="font-semibold text-slate-200">{file.path}</div>
+                        <div className="text-[10px] text-slate-500">{file.size_bytes} bytes • Modified: {new Date(file.modified).toLocaleTimeString()}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 5. BROWSER EVIDENCE */}
+        {activeTab === 'browser' && (
+          <div className="space-y-3">
+            <div className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 text-xs font-mono space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Current URL:</span>
+                <span className="text-indigo-400">{browserState.current_url || 'None (Navigate with browser tool)'}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Page Title:</span>
+                <span className="text-slate-200">{browserState.title || 'N/A'}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Last Screenshot:</span>
+                <span className="text-emerald-400">{browserState.last_screenshot || 'None captured yet'}</span>
+              </div>
+            </div>
+
+            {browserState.last_screenshot && browserState.last_screenshot.endsWith('.png') ? (
+              <div className="p-2 bg-slate-900 rounded-xl border border-slate-800">
+                <div className="text-xs text-slate-400 mb-2 font-medium">Screenshot Evidence:</div>
+                <img
+                  src={`http://localhost:8000/storage/${browserState.last_screenshot}`}
+                  alt="Browser Evidence"
+                  className="rounded-lg w-full max-h-72 object-cover border border-slate-800"
+                />
+              </div>
+            ) : (
+              <div className="text-center py-6 text-slate-500 text-xs font-mono">
+                Ask the agent to navigate to a portal or capture browser evidence to see real visual proof!
               </div>
             )}
           </div>

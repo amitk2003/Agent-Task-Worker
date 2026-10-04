@@ -27,31 +27,51 @@ from tools.finance_fill import FillInvoiceFormTool
 from tools.finance_open import OpenFinanceSystemTool
 from tools.finance_submit import SubmitInvoiceTool
 from tools.finance_verify import VerifySubmissionTool
+from mock_env.email_system import EmailSystem
+from mock_env.file_manager import FileManager
+from mock_env.browser_engine import BrowserEngine
 from tools.invoice_read import ReadInvoiceTool
 from tools.invoice_search import SearchInvoicesTool
+from tools.email_tools import SearchEmailsTool, ReadEmailTool, SendEmailTool
+from tools.file_tools import ListFilesTool, ReadFileTool, SaveFileTool
+from tools.browser_tools import BrowserNavigateTool, BrowserScreenshotTool
 from tools.registry import ToolRegistry
 
 router = APIRouter()
 
 # ── Shared In-Memory State ──────────────────────────────────────────
-# For a production deployment, replace tasks dict with a database.
 tasks_db: Dict[str, TaskState] = {}
 controllers_db: Dict[str, AgentController] = {}
 
-# Mock environments (singletons for demonstration)
+# Mock & Real environments (singletons for demonstration)
 invoice_portal = InvoicePortal()
 finance_system = FinanceSystem()
+email_system = EmailSystem()
+file_manager = FileManager()
+browser_engine = BrowserEngine()
 
 
 def create_tool_registry() -> ToolRegistry:
-    """Instantiate and register all tools wired to the mock systems."""
+    """Instantiate and register all tools wired to the systems."""
     registry = ToolRegistry()
+    # Invoices & Finance
     registry.register(SearchInvoicesTool(invoice_portal))
     registry.register(ReadInvoiceTool(invoice_portal))
     registry.register(OpenFinanceSystemTool(finance_system))
     registry.register(FillInvoiceFormTool(finance_system))
     registry.register(SubmitInvoiceTool(finance_system))
     registry.register(VerifySubmissionTool(finance_system))
+    # Email operations
+    registry.register(SearchEmailsTool(email_system))
+    registry.register(ReadEmailTool(email_system))
+    registry.register(SendEmailTool(email_system))
+    # File operations
+    registry.register(ListFilesTool(file_manager))
+    registry.register(ReadFileTool(file_manager))
+    registry.register(SaveFileTool(file_manager))
+    # Browser operations
+    registry.register(BrowserNavigateTool(browser_engine))
+    registry.register(BrowserScreenshotTool(browser_engine))
     return registry
 
 
@@ -111,11 +131,36 @@ async def get_finance_records():
     }
 
 
+@router.get("/email/inbox")
+async def get_email_inbox():
+    """Inspect incoming emails in inbox."""
+    return email_system.get_inbox()
+
+
+@router.get("/email/outbox")
+async def get_email_outbox():
+    """Inspect outgoing sent emails in outbox."""
+    return email_system.get_outbox()
+
+
+@router.get("/files/list")
+async def get_files_list(sub_dir: str = ""):
+    """Inspect files in workspace storage."""
+    return file_manager.list_files(sub_dir)
+
+
+@router.get("/browser/status")
+async def get_browser_status():
+    """Inspect last browser state and screenshot."""
+    return browser_engine.get_last_state()
+
+
 @router.post("/reset")
 async def reset_environments():
     """Reset the mock systems for a clean demo run."""
     finance_system.reset()
-    return {"status": "environments reset successfully"}
+    email_system.reset()
+    return {"status": "all environments reset successfully"}
 
 
 # ── WebSocket Execution Stream ──────────────────────────────────────

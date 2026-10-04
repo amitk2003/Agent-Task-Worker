@@ -28,6 +28,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
+
+storage_path = Path(__file__).parent / "storage"
+storage_path.mkdir(exist_ok=True)
+app.mount("/storage", StaticFiles(directory=str(storage_path)), name="storage")
+
 app.include_router(api_router, prefix="/api")
 
 

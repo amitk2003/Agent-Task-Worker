@@ -1,0 +1,6 @@
+INVOICE BACKUP COPY
+Invoice ID: ABC-1023
+Vendor: ABC Ltd
+Amount: INR 45000
+Due Date: 2026-10-15
+Description: Cloud Hosting Q4 & Support Package

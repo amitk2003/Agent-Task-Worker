@@ -5,9 +5,10 @@ export function TaskInput({ onStartTask, status, onReset }) {
   const [goal, setGoal] = useState('Process the latest invoice from ABC Ltd');
 
   const presets = [
-    { label: 'ABC Ltd (with error recovery)', text: 'Process the latest invoice from ABC Ltd' },
-    { label: 'XYZ Corp', text: 'Process the latest invoice from XYZ Corp' },
-    { label: 'Acme Industries', text: 'Find the newest invoice from Acme Industries and submit to billing' },
+    { label: 'ABC Ltd (with recovery)', text: 'Process the latest invoice from ABC Ltd' },
+    { label: 'Email + Invoice + Send Confirmation', text: 'Search emails for latest invoice from ABC Ltd, process it into finance, and send confirmation email to manager@company.com' },
+    { label: 'Invoice + File Report + Browser Evidence', text: 'Process latest invoice from XYZ Corp, save audit receipt file to reports/xyz_receipt.txt, and capture browser screenshot' },
+    { label: 'Acme Industries', text: 'Find the newest invoice from Acme Industries, submit to billing, and verify' },
   ];
 
   const handleSubmit = (e) => {
