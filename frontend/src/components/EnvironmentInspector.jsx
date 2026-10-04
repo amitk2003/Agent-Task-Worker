@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Layers, Database, RefreshCw, Mail, Folder, Globe, Send, FileText } from 'lucide-react';
-import Url from '../api/url.js'
+import api from '../api/api.js'
 export function EnvironmentInspector({ status }) {
   const [invoices, setInvoices] = useState([]);
   const [financeData, setFinanceData] = useState({ records: [], session_active: false });
@@ -16,12 +16,12 @@ export function EnvironmentInspector({ status }) {
     setLoading(true);
     try {
       const [resPortal, resFinance, resInbox, resOutbox, resFiles, resBrowser] = await Promise.all([
-        fetch(`${Url}/api/portal/invoices`),
-        fetch(`${Url}/api/finance/records`),
-        fetch(`${Url}/api/email/inbox`),
-        fetch(`${Url}/api/email/outbox`),
-        fetch(`${Url}/api/files/list`),
-        fetch(`${Url}/api/browser/status`),
+        api.get("/api/portal/invoices"),
+        api.get("/api/finance/records"),
+        api.get("/api/email/inbox"),
+        api.get("/api/email/outbox"),
+        api.get("/api/files/list"),
+        api.get("/api/browser/status"),
       ]);
       if (resPortal.ok) setInvoices(await resPortal.json());
       if (resFinance.ok) setFinanceData(await resFinance.json());
