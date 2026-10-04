@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Layers, Database, RefreshCw, Mail, Folder, Globe, Send, FileText } from 'lucide-react';
-import Url from '../api/url';
+import Url from '../api/url.js'
 export function EnvironmentInspector({ status }) {
   const [invoices, setInvoices] = useState([]);
   const [financeData, setFinanceData] = useState({ records: [], session_active: false });
@@ -126,8 +126,8 @@ export function EnvironmentInspector({ status }) {
                     <td className="py-2.5 px-3">
                       <span
                         className={`px-2 py-0.5 rounded text-[10px] ${inv.status === 'paid'
-                            ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/40'
-                            : 'bg-amber-950/60 text-amber-300 border border-amber-800/40'
+                          ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/40'
+                          : 'bg-amber-950/60 text-amber-300 border border-amber-800/40'
                           }`}
                       >
                         {inv.status}
